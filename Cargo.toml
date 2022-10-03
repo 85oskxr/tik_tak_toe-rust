@@ -1,0 +1,7 @@
+[package]
+name = "tik_tak_toe"
+version = "0.1.0"
+edition = "2021"
+authors = ["Oskar Baran <oskar.baran.x@gmail.com>"]
+
+[dependencies]
