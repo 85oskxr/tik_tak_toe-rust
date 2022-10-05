@@ -4,7 +4,10 @@ fn main() {
     println!("\nWitaj w grze \"Tik Tak Toe\"!\n");
     'game: loop {
         if let Some(winner) = check_winner(&tab) {
-            println!("[INFO] - Wygrywa gracz {}!", if winner == false { 1 } else { 2 });
+            match winner {
+                1..=2 => println!("[INFO] - Wygrywa gracz {}!", winner),
+                _ => println!("[INFO] - Remis!")
+            }
             break 'game;
         }
         display_tab(&tab);
@@ -62,7 +65,7 @@ fn display_tab(tab: &[u8; 9]) {
         }
     }
 }
-fn check_winner(tab: &[u8; 9]) -> Option<bool> {
+fn check_winner(tab: &[u8; 9]) -> Option<u8> {
     for x in 1..=2 {
         if tab[0] == x && tab[1] == x && tab[2] == x ||
         tab[3] == x && tab[4] == x && tab[5] == x ||
@@ -72,8 +75,17 @@ fn check_winner(tab: &[u8; 9]) -> Option<bool> {
         tab[2] == x && tab[5] == x && tab[8] == x ||
         tab[0] == x && tab[4] == x && tab[8] == x ||
         tab[2] == x && tab[4] == x && tab[6] == x {
-            return Some(x != 1)
+            return Some(x)
         }
+    }
+    let mut draw: usize = 0;
+    for x in tab {
+        if *x != 0 {
+            draw += 1;
+        }
+    }
+    if draw == tab.len() {
+        return Some(3)
     }
     None
 }
