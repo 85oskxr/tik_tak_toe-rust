@@ -1,91 +1,116 @@
+use game::{*};
+
 fn main() {
     let mut actual_player: bool = false;
-    let mut tab: [u8; 9] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    println!("\nWitaj w grze \"Tik Tak Toe\"!\n");
+    let mut tab: [Field; 9] = [Field::FREE; 9];
+    println!("Witaj w grze \"Tik Tak Toe\"!\n");
     'game: loop {
-        if let Some(winner) = check_winner(&tab) {
-            match winner {
-                1..=2 => println!("[INFO] - Wygrywa gracz {}!", winner),
-                _ => println!("[INFO] - Remis!")
+        if let Some(result) = check_winner(&tab) {
+            match result {
+                GameResult::WIN(player) => println!("[INFO] - Wygrywa gracz {}!", player.as_u8()),
+                GameResult::DRAW => println!(),
             }
             break 'game;
         }
         display_tab(&tab);
-        println!("Wybór gracza {} - ", if actual_player == false { '1' } else { '2' });
+        println!("Wybór gracza {}", if !actual_player { '1' } else { '2' });
         let mut buffer: String = String::new();
         if let Err(error) = std::io::stdin().read_line(&mut buffer) {
-            panic!("{error}");
+            panic!("{}", error)
         }
         if let Ok(number) = buffer.trim().parse::<usize>() {
             if number > 0 && number < 10 {
-                if tab[number - 1] == 0 {
-                    tab[number - 1] = actual_player as u8 + 1;
-                    actual_player = !actual_player;
+                if tab[number - 1] == Field::FREE {
+                    tab[number - 1] = Field::OCCUPIED(if !actual_player { Player::FIRST } else { Player::SECOND });
+                    actual_player = !actual_player
                 }
                 else {
-                    println!("[!] - Pole {} jest juz zajete przez gracza {}!", number, tab[number - 1]);
+                    println!("[!] - Pole {} jest już zajęte przez gracza {}!", number, if !actual_player { Player::FIRST as u8 as char } else { Player::SECOND as u8 as char })
                 }
             }
             else {
-                println!("[!] - Nieprawidłowy numer!");
+                println!("[!] - Nieprawidłowy numer!")
             }
         }
         else {
-            println!("[!] - Nieprawidłowy numer!");
+            println!("[!] - Nieprawidłowy numer!")
         }
+        //break 'game;
     }
 }
 
-fn display_tab(tab: &[u8; 9]) {
-    println!("\n\n\n\n\n");
-    for x in 1..tab.len() + 1 {
-        if x % 3 != 0 {
-            if tab[x - 1] == 0 {
-                print!("{} ", x);
+mod game {
+    #[derive(Clone, Copy, PartialEq)]
+    pub enum Field {
+        OCCUPIED(Player),
+        FREE,
+    }
+    #[derive(Clone, Copy, PartialEq)]
+    pub enum Player {
+        FIRST = 'X' as isize,
+        SECOND = 'O' as isize,
+    }
+    impl Player {
+        pub fn get_player_from_u8(number: u8) -> Option<Self> {
+            match number {
+                1 => Some(Self::FIRST),
+                2 => Some(Self::SECOND),
+                _ => None,
+            }
+        }
+        pub fn as_u8(&self) -> u8 {
+            match *self {
+                Self::FIRST => 1,
+                Self::SECOND => 2,
+            }
+        }
+    }
+    pub enum GameResult {
+        WIN(Player),
+        DRAW,
+    }
+    pub fn display_tab(tab: &[Field; 9]) {
+        for x in 1..tab.len() + 1 {
+            if x % 3 != 0 {
+                print!("{} ", match tab[x - 1] {
+                    Field::OCCUPIED(player) => player as u8 as char,
+                    Field::FREE => format!("{}", x).chars().next().unwrap(),
+                });
             }
             else {
-                match tab[x - 1] {
-                    1 => print!("X "),
-                    2 => print!("O "),
-                    _ => {},
-                }
-            }
-        }
-        else {
-            if tab[x - 1] == 0 {
-                print!("{}\n", x);
-            }
-            else {
-                match tab[x - 1] {
-                    1 => print!("X\n"),
-                    2 => print!("O\n"),
-                    _ => {},
-                }
+                print!("{}\n", match tab[x - 1] {
+                    Field::OCCUPIED(player) => player as u8 as char,
+                    Field::FREE => format!("{}", x).chars().next().unwrap(),
+                });
             }
         }
     }
-}
-fn check_winner(tab: &[u8; 9]) -> Option<u8> {
-    for x in 1..=2 {
-        if tab[0] == x && tab[1] == x && tab[2] == x ||
-        tab[3] == x && tab[4] == x && tab[5] == x ||
-        tab[6] == x && tab[7] == x && tab[8] == x ||
-        tab[0] == x && tab[3] == x && tab[6] == x ||
-        tab[1] == x && tab[4] == x && tab[7] == x ||
-        tab[2] == x && tab[5] == x && tab[8] == x ||
-        tab[0] == x && tab[4] == x && tab[8] == x ||
-        tab[2] == x && tab[4] == x && tab[6] == x {
-            return Some(x)
+    pub fn check_winner(tab: &[Field; 9]) -> Option<GameResult> {
+        for x in 1..=2 {
+            let mut player: Player = Player::FIRST;
+            if let Some(loop_player) = Player::get_player_from_u8(x) {
+                player = loop_player;
+            }
+            if tab[0] == Field::OCCUPIED(player) && tab[1] == Field::OCCUPIED(player) && tab[2] == Field::OCCUPIED(player) ||
+            tab[3] == Field::OCCUPIED(player) && tab[4] == Field::OCCUPIED(player) && tab[5] == Field::OCCUPIED(player) ||
+            tab[6] == Field::OCCUPIED(player) && tab[7] == Field::OCCUPIED(player) && tab[8] == Field::OCCUPIED(player) ||
+            tab[0] == Field::OCCUPIED(player) && tab[3] == Field::OCCUPIED(player) && tab[6] == Field::OCCUPIED(player) ||
+            tab[1] == Field::OCCUPIED(player) && tab[4] == Field::OCCUPIED(player) && tab[7] == Field::OCCUPIED(player) ||
+            tab[2] == Field::OCCUPIED(player) && tab[5] == Field::OCCUPIED(player) && tab[8] == Field::OCCUPIED(player) ||
+            tab[0] == Field::OCCUPIED(player) && tab[4] == Field::OCCUPIED(player) && tab[8] == Field::OCCUPIED(player) ||
+            tab[2] == Field::OCCUPIED(player) && tab[4] == Field::OCCUPIED(player) && tab[6] == Field::OCCUPIED(player) {
+                return Some(GameResult::WIN(player))
+            }
         }
-    }
-    let mut draw: usize = 0;
-    for x in tab {
-        if *x != 0 {
-            draw += 1;
+        let mut draw: u8 = 0;
+        for x in 0..tab.len() {
+            if tab[x] != Field::FREE {
+                draw += 1
+            }
         }
+        if draw as usize > tab.len() - 1 {
+            return Some(GameResult::DRAW)
+        }
+        None
     }
-    if draw == tab.len() {
-        return Some(3)
-    }
-    None
 }
